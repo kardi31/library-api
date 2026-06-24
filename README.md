@@ -7,3 +7,4 @@
 docker compose up -d
 
 
+Aplikacja dostępna jest do debugowania na podstronie /api
