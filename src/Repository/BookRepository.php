@@ -31,4 +31,9 @@ class BookRepository extends ServiceEntityRepository
             $this->getEntityManager()->flush();
         }
     }
+
+    public function findBySerialNumber(string $serialNumber): ?Book
+    {
+        return $this->findOneBy(['serialNumber' => $serialNumber]);
+    }
 }

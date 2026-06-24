@@ -28,8 +28,12 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
             ]
         ),
         new Post(denormalizationContext: ['groups' => ['book:write']]),
-        new Delete(),
-
+        new Delete(
+            uriTemplate: '/books/{serialNumber}',
+            uriVariables: [
+                'serialNumber' => new Link(fromClass: Book::class, identifiers: ['serialNumber'])
+            ]
+        ),
         new Post(
             uriTemplate: '/books/{serialNumber}/borrow',
             uriVariables: [
@@ -58,6 +62,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
                 ]
             ],
             normalizationContext: ['groups' => ['book:read']],
+            deserialize: false,
             name: 'book_borrow'
         ),
         new Post(
@@ -81,6 +86,7 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
                 ]
             ],
             normalizationContext: ['groups' => ['book:read']],
+            deserialize: false,
             name: 'book_return'
         )
     ]
@@ -106,12 +112,12 @@ class Book
 
     #[ORM\Column]
     #[Groups(['book:read'])]
-    private bool $isBorrowed = false;
+    private bool $isBorrowed;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(name: 'current_borrower_id', referencedColumnName: 'id', nullable: true)]
     #[Groups(['book:read'])]
-    private ?User $currentBorrower = null;
+    private ?User $currentBorrower;
 
     #[ORM\OneToMany(targetEntity: LoanHistory::class, mappedBy: 'book', fetch: 'EXTRA_LAZY')]
     private Collection $loanHistories;

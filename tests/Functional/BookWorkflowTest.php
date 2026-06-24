@@ -40,6 +40,11 @@ class BookWorkflowTest extends ApiTestCase
         $this->entityManager->persist($book);
         $this->entityManager->flush();
 
+        $employee = new Employee();
+        $employee->setName('Testowy Bibliotekarz');
+        $employee->setRole('Moderator');
+        $this->entityManager->persist($employee);
+        $this->entityManager->flush();
         // 1. Wypożyczenie
         $client->request('POST', '/api/books/TEST01/borrow', [
             'headers' => ['Content-Type' => 'application/json'],
@@ -79,9 +84,6 @@ class BookWorkflowTest extends ApiTestCase
         ]);
     }
 
-    /**
-     * SCENARIUSZ 2: Próba wypożyczenia nieistniejącej książki (Oczekiwany błąd 404)
-     */
     public function testCannotBorrowNonExistentBook(): void
     {
         $client = self::createClient();
@@ -114,7 +116,7 @@ class BookWorkflowTest extends ApiTestCase
         $this->assertResponseStatusCodeSame(400);
         // Dopasuj poniższy komunikat do tego, co dokładnie zwraca Twój ReturnBookAction
         $this->assertJsonContains([
-            'hydra:description' => 'Książka nie jest obecnie wypożyczona.',
+            'hydra:description' => 'Operacja niemożliwa do wykonania.',
         ]);
     }
 }

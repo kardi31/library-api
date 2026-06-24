@@ -4,13 +4,13 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\Book;
-use App\Entity\LoanHistory;
-use App\Repository\LoanHistoryRepository;
+use App\Repository\BookRepository;
 use App\Repository\UserRepository;
 use App\Security\CurrentEmployeeProvider;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 #[AsController]
 class BorrowBookAction
@@ -18,12 +18,16 @@ class BorrowBookAction
     public function __construct(
         private readonly CurrentEmployeeProvider $employeeProvider,
         private readonly UserRepository $userRepository,
-        private readonly LoanHistoryRepository $loanHistoryRepository,
+        private readonly BookRepository $bookRepository,
     ) {
     }
 
-    public function __invoke(Book $data, Request $request): Book
+    public function __invoke(string $serialNumber, Request $request): Book
     {
+        $book = $this->bookRepository->findBySerialNumber($serialNumber);
+        if (!$book) {
+            throw new NotFoundHttpException('Podana książka nie istnieje');
+        }
         $payload = json_decode($request->getContent(), true);
         $cardNumber = $payload['card_number'] ?? null;
 
@@ -32,24 +36,21 @@ class BorrowBookAction
         }
 
         $employee = $this->employeeProvider->getCurrentEmployee();
-        $user = $this->userRepository->findByCardNumber($cardNumber);
         if (!$employee) {
             throw new BadRequestHttpException('Pracownik nie znaleziony');
         }
 
+        $user = $this->userRepository->findByCardNumber($cardNumber);
         if (!$user) {
             throw new BadRequestHttpException('Użytkownik nie istnieje');
         }
 
-        if ($data->isBorrowed()) {
+        if ($book->isBorrowed()) {
             throw new BadRequestHttpException('Książka została już wypożyczona.');
         }
 
-        $data->borrow($user);
-        $history = new LoanHistory($data, $user, $employee, LoanHistory::ACTION_BORROW);
+        $book->borrow($user);
 
-        $this->loanHistoryRepository->save($history);
-
-        return $data;
+        return $book;
     }
 }

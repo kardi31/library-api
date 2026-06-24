@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use App\Repository\LoanHistoryRepository;
+use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: LoanHistoryRepository::class)]
@@ -11,8 +13,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ApiResource(operations: [])]
 class LoanHistory
 {
-    public const ACTION_BORROW = 'borrow';
-    public const ACTION_RETURN = 'return';
+    public const string ACTION_BORROW = 'borrow';
+    public const string ACTION_RETURN = 'return';
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -34,7 +36,7 @@ class LoanHistory
     private string $action;
 
     #[ORM\Column]
-    private \DateTimeImmutable $createdAt;
+    private DateTimeImmutable $createdAt;
 
     public function __construct(Book $book, User $user, Employee $employee, string $action)
     {
@@ -42,7 +44,7 @@ class LoanHistory
         $this->user = $user;
         $this->employee = $employee;
         $this->action = $action;
-        $this->createdAt = new \DateTimeImmutable();
+        $this->createdAt = new DateTimeImmutable();
     }
 
     public function getBook(): Book
@@ -65,7 +67,7 @@ class LoanHistory
         return $this->action;
     }
 
-    public function getCreatedAt(): \DateTimeImmutable
+    public function getCreatedAt(): DateTimeImmutable
     {
         return $this->createdAt;
     }

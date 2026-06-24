@@ -4,24 +4,32 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\Book;
-use App\Entity\LoanHistory;
-use App\Repository\LoanHistoryRepository;
+use App\Event\BookReturnedEvent;
+use App\Repository\BookRepository;
 use App\Security\CurrentEmployeeProvider;
-use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 #[AsController]
 class ReturnBookAction
 {
     public function __construct(
         private readonly CurrentEmployeeProvider $employeeProvider,
-        private readonly LoanHistoryRepository $loanHistoryRepository,
+        private readonly BookRepository $bookRepository,
+        private readonly EventDispatcherInterface $eventDispatcher
     ) {}
 
-    public function __invoke(Book $data, Request $request): Book
+    public function __invoke(string $serialNumber): Book
     {
-        if (!$data->isBorrowed()) {
+        $book = $this->bookRepository->findBySerialNumber($serialNumber);
+        if (!$book) {
+            throw new NotFoundHttpException('Podana książka nie istnieje');
+        }
+
+        $user = $book->getCurrentBorrower();
+        if (!$book->isBorrowed() || $user === null) {
             throw new BadRequestHttpException('Operacja niemożliwa do wykonania.');
         }
 
@@ -30,13 +38,17 @@ class ReturnBookAction
             throw new BadRequestHttpException('Pracownik nie istnieje.');
         }
 
-        $user = $data->getCurrentBorrower();
-        $data->returnBook();
+        $book->returnBook();
 
-        $history = new LoanHistory($data, $user, $employee, LoanHistory::ACTION_RETURN);
+        $this->eventDispatcher->dispatch(
+            new BookReturnedEvent(
+                $book->getId(),
+                $user->getId(),
+                $employee->getId()
+            ),
+            BookReturnedEvent::NAME
+        );
 
-        $this->loanHistoryRepository->save($history);
-
-        return $data;
+        return $book;
     }
 }
